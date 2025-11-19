@@ -711,8 +711,10 @@ rf_fit %>%
 ```
 
 
-Fit the best model to the entire data set!
+Fit the best model (Random Forest Model) to the entire data set!
 ```{r}
-
+final_overall_model <- rf_final_wkf |>
+  fit(bike_summary_data)
+final_overall_model
 ```
 
