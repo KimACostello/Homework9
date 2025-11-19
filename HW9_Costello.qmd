@@ -565,10 +565,20 @@ bag_final_fit |>
 #### Random Forest Model
 
 ```{r}
+#Extract function
+get_rf_imp <- function(x) {
+    x %>% 
+        extract_fit_parsnip() %>% 
+        vip::vi()
+}
+
 # Set up model and engine
 rf_mod <- rand_forest(mtry = tune()) |>
- set_engine("ranger") |>
+ set_engine("ranger", importance = "impurity") |>
  set_mode("regression")
+
+# This is to get the variable importance 
+ctrl_imp <- control_grid(extract = get_rf_imp)
 
 #create workflows
  rf_wkf <- workflow() |>
@@ -579,7 +589,8 @@ rf_mod <- rand_forest(mtry = tune()) |>
  rf_fit <- rf_wkf |>
   tune_grid(resamples = bike_folds,
             grid = 7,  #7 total values
-            metrics = metric_set(rmse, mae))
+            metrics = metric_set(rmse, mae),
+            control = ctrl_imp)    # variable importance
  
  # Check metrics across folds
  rf_fit |>
@@ -683,3 +694,25 @@ bag_final_model$imp |>
   coord_flip()
 ```
 Temperature was the most important to # of bike rentals. 
+
+Random Forest Model variable importance plot: 
+```{r}
+rf_fit %>%
+    select(id, .extracts) %>%
+    unnest(.extracts) %>%
+    unnest(.extracts) %>%
+    group_by(Variable) %>%
+    summarise(Mean = mean(Importance),
+              Variance = sd(Importance)) %>%
+    slice_max(Mean, n = 15) %>%
+    ggplot(aes(Mean, reorder(Variable, Mean))) +
+    geom_crossbar(aes(xmin = Mean - Variance, xmax = Mean + Variance)) +
+    labs(x = "Variable importance", y = NULL)
+```
+
+
+Fit the best model to the entire data set!
+```{r}
+
+```
+
